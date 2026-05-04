@@ -38,11 +38,24 @@ docker-compose up -d
 ``` 
 This will start the Web server at `http://localhost:3000` and DynamoDB local at `http://localhost:8000`. 
 
-### 2. Open the Monitor 
+### 2. Create initial table 
+
+```bash
+aws dynamodb create-table \
+    --endpoint-url http://localhost:8000 \
+    --region ap-northeast-1 \
+    --table-name YourTableName \
+    --attribute-definitions AttributeName=id,AttributeType=S \
+    --key-schema AttributeName=id,KeyType=HASH \
+    --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+```
+This will create initial table 'Webhooks' in the dynamodb local.
+
+### 3. Open the Monitor 
 
 Open your browser and go to: [http://localhost:3000](http://localhost:3000) 
 
-### 3. Send a Test Webhook 
+### 4. Send a Test Webhook 
 
 From your Windows File Explorer, go to the `windows` folder and run: `send_webhook.bat` Follow the prompt to enter a message. The web dashboard will update automatically within 5 seconds. 
 
@@ -56,6 +69,4 @@ Then restart WSL with `wsl --shutdown`.
 
 ## License 
 
-This project is licensed under the MIT License - see below for details. 
---- 
-### MIT License Copyright (c) 2024 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+This project is licensed under the MIT License - see LICENSE for details. 
