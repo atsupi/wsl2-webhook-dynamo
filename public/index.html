@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhook Monitor</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 30px; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; margin-bottom: 20px; padding-bottom: 10px; }
+        h1 { margin: 0; font-size: 1.5rem; color: #2c3e50; }
+        .status { font-size: 0.8rem; color: #7f8c8d; }
+        .pulse { display: inline-block; width: 8px; height: 8px; background: #2ecc71; border-radius: 50%; margin-right: 5px; opacity: 1; transition: opacity 0.3s; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #edf2f7; }
+        th { background-color: #f8fafc; color: #64748b; font-size: 0.85rem; text-transform: uppercase; }
+        tr:hover { background-color: #f1f5f9; }
+        .timestamp { color: #3498db; font-family: monospace; font-size: 0.9rem; }
+        .message-text { word-break: break-all; font-weight: 500; }
+        
+        /* Highlight animation for new items */
+        .new-row { animation: highlight 2s ease-out; }
+        @keyframes highlight {
+            0% { background-color: #e3f2fd; }
+            100% { background-color: transparent; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Webhook Logs</h1>
+            <div class="status">
+                <span id="pulse-dot" class="pulse"></span>
+                <span id="status-text">Monitoring DynamoDB...</span>
+            </div>
+        </header>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 30%;">Timestamp</th>
+                    <th>Message</th>
+                </tr>
+            </thead>
+            <tbody id="log-table-body">
+                </tbody>
+        </table>
+    </div>
+
+    <script>
+        let currentDataIds = new Set();
+        const POLL_INTERVAL = 5000; // Check every 5 seconds (Adjustable from 2s to 60s)
+
+        async function updateLogs() {
+            const pulseDot = document.getElementById('pulse-dot');
+            try {
+                // Visual feedback for polling
+                pulseDot.style.opacity = '0.2';
+                
+                const response = await fetch('/messages');
+                const data = await response.json();
+                
+                // Sort: Newest first (using id/timestamp)
+                data.sort((a, b) => b.id.localeCompare(a.id));
+
+                const tbody = document.getElementById('log-table-body');
+                const newDataIds = new Set(data.map(item => item.id));
+
+                // Check if there's any difference from the current view
+                const hasChanges = data.length !== currentDataIds.size || 
+                                 data.some(item => !currentDataIds.has(item.id));
+
+                if (hasChanges) {
+                    tbody.innerHTML = data.map(item => `
+                        <tr class="${currentDataIds.has(item.id) ? '' : 'new-row'}">
+                            <td class="timestamp">${item.timestamp}</td>
+                            <td class="message-text">${escapeHtml(item.message)}</td>
+                        </tr>
+                    `).join('');
+                    
+                    currentDataIds = newDataIds;
+                    console.log(`Updated at ${new Date().toLocaleTimeString()}: Found ${data.length} messages.`);
+                }
+
+                setTimeout(() => { pulseDot.style.opacity = '1'; }, 300);
+            } catch (err) {
+                console.error("Polling failed:", err);
+                document.getElementById('status-text').innerText = "Connection Error";
+                pulseDot.style.background = "#e74c3c";
+            }
+        }
+
+        // Helper to prevent XSS
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, function(m) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+            });
+        }
+
+        // Run immediately on start
+        updateLogs();
+
+        // Start periodic polling
+        setInterval(updateLogs, POLL_INTERVAL);
+    </script>
+</body>
+</html>
